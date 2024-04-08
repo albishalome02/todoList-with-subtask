@@ -173,7 +173,6 @@ function App() {
         <div className="popup">
           <div className="popup-content">
             <span className="close" onClick={() => setShowPopup(false)}>
-              &times;
             </span>
             <button className="cancel-button" onClick={cancelAddTask}>
               Cancel
