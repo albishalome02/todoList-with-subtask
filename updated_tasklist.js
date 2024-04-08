@@ -96,7 +96,7 @@ function App() {
     const parentTask = findTask(userList, parentId);
     const subtask = findTask(parentTask.subTasks, subtaskId);
     console.log("Parent ID:", parentId);
-  console.log("Subtask ID:", subtaskId);
+    console.log("Subtask ID:", subtaskId);
     subtask.status = "Done";
     setUserList([...userList]);
     checkAndUpdateParentStatus(parentId);
@@ -114,20 +114,19 @@ function App() {
           <td>{subtask.status}</td>
           <td>{parentId ? findTask(userList, parentId).name : ""}</td>
           <td>
-  <button
-    onClick={() => handleAddSubtask(subtask.id)}
-    className="todo-button"
-  >
-    Add Subtask
-  </button>
-  <button
-    onClick={() => markSubtaskAsDone(parentId, subtask.id)}
-    className="todo-button"
-  >
-    Mark as Done
-  </button>
-</td>
-
+            <button
+              onClick={() => handleAddSubtask(subtask.id)}
+              className="todo-button"
+            >
+              Add Subtask
+            </button>
+            <button
+              onClick={() => markSubtaskAsDone(parentId, subtask.id)}
+              className="todo-button"
+            >
+              Mark as Done
+            </button>
+          </td>
         </tr>
         {subtask.subTasks.length > 0 &&
           renderSubtasks(subtask.subTasks, subtask.id)}
@@ -140,7 +139,11 @@ function App() {
     setFormData(userList[i]);
     setShowPopup(true);
   };
-
+  const remove = (i) => {
+    const updatedList = [...userList];
+    updatedList.splice(i, 1);
+    setUserList(updatedList);
+  };
   const handleAlert = () => {
     setShowPopup(true);
   };
@@ -184,25 +187,34 @@ function App() {
                     {task.priority}
                   </td>
                   <td>{task.status}</td>
-                  <td>{task.parentId ? findTask(userList, task.parentId).name : ""}</td>
                   <td>
-  <button
-    onClick={() => handleAddSubtask(task.id)}
-    className="todo-button"
-  >
-    Add Subtask
-  </button>
-  <button onClick={() => edit(index)} className="todo-button">
-    Edit
-  </button>
-  <button
-    onClick={() => markSubtaskAsDone(null, task.id)}
-    className="todo-button"
-  >
-    Mark as Done
-  </button>
-</td>
-
+                    {task.parentId
+                      ? findTask(userList, task.parentId).name
+                      : ""}
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleAddSubtask(task.id)}
+                      className="todo-button"
+                    >
+                      Add Subtask
+                    </button>
+                    <button onClick={() => edit(index)} className="todo-button">
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => remove(index)}
+                      className="todo-button"
+                    >
+                      Remove
+                    </button>
+                    <button
+                      onClick={() => markSubtaskAsDone(null, task.id)}
+                      className="todo-button"
+                    >
+                      Mark as Done
+                    </button>
+                  </td>
                 </tr>
                 {task.subTasks.length > 0 &&
                   renderSubtasks(task.subTasks, task.id)}
