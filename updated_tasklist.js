@@ -82,12 +82,12 @@ function App() {
   const markTaskAsDone = (taskId) => {
     setTodoList((prevTodoList) => {
       const updatedList = prevTodoList.map((task) => {
+        console.log("Task id:",task.id);
         if (task.id === taskId) {
           task.status = "Done";
         }
         return task;
       });
-
       const markChildrenAsDone = (parentTask) => {
         const childTasks = updatedList.filter(
           (task) => task.parentId === parentTask.id
@@ -97,7 +97,6 @@ function App() {
           markChildrenAsDone(childTask); // Recursively mark child's subtasks as done
         });
       };
-
       const markParentAsDone = (childTask) => {
         const parentId = childTask.parentId;
         if (parentId) {
@@ -111,11 +110,10 @@ function App() {
           }
         }
       };
-
       const task = updatedList.find((task) => task.id === taskId);
       if (task.status === "Done") {
-        markChildrenAsDone(task); // Mark children and subtasks as done if parent is done
         markParentAsDone(task); // Mark immediate parent as done after marking children
+        markChildrenAsDone(task); // Mark children and subtasks as done if parent is done
       } else {
         markParentAsDone(task); // Mark immediate parent as done if child task is marked as done
       }
@@ -225,24 +223,25 @@ function App() {
                 Low
               </button>
             </div>
-            <select
-              className="select-todo"
-              value={selectedParentTask ? selectedParentTask.id : " "}
-              onChange={(e) => {
-                const taskId = parseInt(e.target.value);
-                const task = todoList.find((task) => task.id === taskId);
-                setSelectedParentTask(task);
-              }}
-            >
-              <option value="">
-                Select any Task(This will act as a parent task)
-              </option>
-              {todoList.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.name}
-                </option>
-              ))}
-            </select>
+           <select
+           className="select-todo"
+           value={selectedParentTask ? selectedParentTask.id : ""}
+           onChange={(e) => {
+           const taskId = parseInt(e.target.value);
+           const task = todoList.find((task) => task.id === taskId);
+           setSelectedParentTask(task);
+          }}
+        >
+        <option value="">
+          Select any Task (This will act as a parent task)
+        </option>
+        {todoList.map((task,index) => (
+          <option key={task.id} value={task.id}>
+            {task.name}(ID: {index+1})
+          </option>
+        ))}
+      </select>
+
             <button className="pop-add" onClick={formSubmit}>
               Add
             </button>
@@ -254,3 +253,4 @@ function App() {
 }
 
 export default App;
+
