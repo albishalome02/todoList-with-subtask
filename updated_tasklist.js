@@ -2,15 +2,13 @@ import React, { useState } from "react";
 import "./App.css";
 
 function App() {
-  const [userList, setUserList] = useState([
+  const [todoList, setTodoList] = useState([
     {
       id: 1,
       name: "Design",
       priority: "High",
       status: "Todo",
       parentId: null,
-      subTasks: [],
-      showSubtasks: false,
     },
     {
       id: 2,
@@ -18,8 +16,6 @@ function App() {
       priority: "Low",
       status: "Todo",
       parentId: null,
-      subTasks: [],
-      showSubtasks: false,
     },
   ]);
   const [editIndex, setEditIndex] = useState(-1);
@@ -28,124 +24,49 @@ function App() {
     priority: "",
   });
   const [showPopup, setShowPopup] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [selectedParentTask, setSelectedParentTask] = useState(null);
 
   const formSubmit = () => {
     if (editIndex === -1) {
-      setUserList([
-        ...userList,
+      setTodoList([
+        ...todoList,
         {
           ...formData,
           id: Date.now(),
           status: "Todo",
-          parentId: selectedTaskId,
-          subTasks: [],
-          showSubtasks: false,
+          parentId: selectedParentTask ? selectedParentTask.id : null,
         },
       ]);
     } else {
-      const updatedList = [...userList];
+      const updatedList = [...todoList];
       updatedList[editIndex] = {
         ...formData,
         status: "Todo",
-        parentId: null,
-        subTasks: [],
-        showSubtasks: false,
+        parentId: todoList[editIndex].parentId,
       };
-      setUserList(updatedList);
+      setTodoList(updatedList);
       setEditIndex(-1);
     }
     setFormData({ name: "", priority: "" });
     setShowPopup(false);
-  };
-
-  const handleAddSubtask = (taskId) => {
-    setSelectedTaskId(taskId);
-    setShowPopup(true);
-  };
-
-  const findTask = (tasks, taskId) => {
-    for (const task of tasks) {
-      if (task.id === taskId) return task;
-      if (task.subTasks.length > 0) {
-        const found = findTask(task.subTasks, taskId);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  const checkAndUpdateParentStatus = (taskId) => {
-    const task = findTask(userList, taskId);
-    if (!task || !task.parentId) return;
-
-    const parentTask = findTask(userList, task.parentId);
-    if (!parentTask) return;
-
-    const allSubtasksDone = parentTask.subTasks.every(
-      (subtask) => subtask.status === "Done"
-    );
-    if (allSubtasksDone) {
-      parentTask.status = "Done";
-      setUserList([...userList]);
-      checkAndUpdateParentStatus(parentTask.id); // Recursively check parent tasks
-    }
-  };
-
-  const markSubtaskAsDone = (parentId, subtaskId) => {
-    const parentTask = findTask(userList, parentId);
-    const subtask = findTask(parentTask.subTasks, subtaskId);
-    console.log("Parent ID:", parentId);
-    console.log("Subtask ID:", subtaskId);
-    subtask.status = "Done";
-    setUserList([...userList]);
-    checkAndUpdateParentStatus(parentId);
-  };
-
-  const renderSubtasks = (subTasks, parentId) => {
-    return subTasks.map((subtask, index) => (
-      <React.Fragment key={subtask.id}>
-        <tr>
-          <td>{index + 1}</td>
-          <td>{subtask.name}</td>
-          <td className={`priority-${subtask.priority.toLowerCase()}`}>
-            {subtask.priority}
-          </td>
-          <td>{subtask.status}</td>
-          <td>{parentId ? findTask(userList, parentId).name : ""}</td>
-          <td>
-            <button
-              onClick={() => handleAddSubtask(subtask.id)}
-              className="todo-button"
-            >
-              Add Subtask
-            </button>
-            <button
-              onClick={() => markSubtaskAsDone(parentId, subtask.id)}
-              className="todo-button"
-            >
-              Mark as Done
-            </button>
-          </td>
-        </tr>
-        {subtask.subTasks.length > 0 &&
-          renderSubtasks(subtask.subTasks, subtask.id)}
-      </React.Fragment>
-    ));
+    setSelectedParentTask(null);
   };
 
   const edit = (i) => {
     setEditIndex(i);
-    setFormData(userList[i]);
+    setFormData(todoList[i]);
+    const parentTaskId = todoList[i].parentId;
+    const parentTask = parentTaskId
+      ? todoList.find((task) => task.id === parentTaskId)
+      : null;
+    setSelectedParentTask(parentTask);
     setShowPopup(true);
   };
+
   const remove = (i) => {
-    const updatedList = [...userList];
+    const updatedList = [...todoList];
     updatedList.splice(i, 1);
-    setUserList(updatedList);
-  };
-  const handleAlert = () => {
-    setShowPopup(true);
+    setTodoList(updatedList);
   };
 
   const handlePriorityClick = (priority) => {
@@ -155,13 +76,64 @@ function App() {
   const cancelAddTask = () => {
     setFormData({ name: "", priority: "" });
     setShowPopup(false);
+    setSelectedParentTask(null);
+  };
+
+  const markTaskAsDone = (taskId) => {
+    setTodoList((prevTodoList) => {
+      const updatedList = prevTodoList.map((task) => {
+        if (task.id === taskId) {
+          task.status = "Done";
+        }
+        return task;
+      });
+
+      const markChildrenAsDone = (parentTask) => {
+        const childTasks = updatedList.filter(
+          (task) => task.parentId === parentTask.id
+        );// calls a function for each element in an array(forEach)
+        childTasks.forEach((childTask) => {
+          childTask.status = "Done";
+          markChildrenAsDone(childTask); // Recursively mark child's subtasks as done
+        });
+      };
+
+      const markParentAsDone = (childTask) => {
+        const parentId = childTask.parentId;
+        if (parentId) {
+          const parentTask = updatedList.find((task) => task.id === parentId);
+          const allChildrenDone = updatedList
+            .filter((task) => task.parentId === parentId)//used to create a new array from a given array consisting of only those elements from the given array that satisfy a condition set by the argument method.
+            .every((task) => task.status === "Done"); //checks if all elements in an array pass a test specified by a function. It returns true if all elements satisfy the condition, otherwise false.
+          if (allChildrenDone) {
+            parentTask.status = "Done";
+            markParentAsDone(parentTask); // Recursively mark parent's parent as done
+          }
+        }
+      };
+
+      const task = updatedList.find((task) => task.id === taskId);
+      if (task.status === "Done") {
+        markChildrenAsDone(task); // Mark children and subtasks as done if parent is done
+        markParentAsDone(task); // Mark immediate parent as done after marking children
+      } else {
+        markParentAsDone(task); // Mark immediate parent as done if child task is marked as done
+      }
+
+      return updatedList;
+    });
+  };
+
+  const getParentName = (taskId) => {
+    const parentTask = todoList.find((task) => task.id === taskId);
+    return parentTask ? parentTask.name : "No parent";
   };
 
   return (
     <div>
       <div>
         <h3>Task List</h3>
-        <button className="Add-button" onClick={handleAlert}>
+        <button className="Add-button" onClick={() => setShowPopup(true)}>
           Add More
         </button>
       </div>
@@ -173,52 +145,44 @@ function App() {
               <td>Task</td>
               <td>Priority</td>
               <td>Status</td>
-              <th>Parent Task</th>
+              <td>Parent Task</td>
               <td>Action</td>
             </tr>
           </thead>
           <tbody>
-            {userList.map((task, index) => (
-              <React.Fragment key={task.id}>
-                <tr>
-                  <td>{index + 1}</td>
-                  <td>{task.name}</td>
-                  <td className={`priority-${task.priority.toLowerCase()}`}>
-                    {task.priority}
-                  </td>
-                  <td>{task.status}</td>
-                  <td>
-                    {task.parentId
-                      ? findTask(userList, task.parentId).name
-                      : ""}
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => handleAddSubtask(task.id)}
-                      className="todo-button"
-                    >
-                      Add Subtask
-                    </button>
-                    <button onClick={() => edit(index)} className="todo-button">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => remove(index)}
-                      className="todo-button"
-                    >
-                      Remove
-                    </button>
-                    <button
-                      onClick={() => markSubtaskAsDone(null, task.id)}
-                      className="todo-button"
-                    >
-                      Mark as Done
-                    </button>
-                  </td>
-                </tr>
-                {task.subTasks.length > 0 &&
-                  renderSubtasks(task.subTasks, task.id)}
-              </React.Fragment>
+            {todoList.map((task, index) => (
+              <tr key={task.id}>
+                <td>{index + 1}</td>
+                <td>{task.name}</td>
+                <td className={`priority-${task.priority.toLowerCase()}`}>
+                  {task.priority}
+                </td>
+                <td>{task.status}</td>
+                <td>{getParentName(task.parentId)}</td>
+                <td>
+                  <button onClick={() => edit(index)} className="todo-button">
+                    Edit
+                  </button>
+                  <button onClick={() => remove(index)} className="todo-button">
+                    Remove
+                  </button>
+                  <button
+                    className="todo-button"
+                    onClick={() => markTaskAsDone(task.id)}
+                  >
+                    Done
+                  </button>
+                  <button
+                    className="todo-button"
+                    onClick={() => {
+                      setSelectedParentTask(task);
+                      setShowPopup(true);
+                    }}
+                  >
+                    Add task
+                  </button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -226,9 +190,7 @@ function App() {
       {showPopup && (
         <div className="popup">
           <div className="popup-content">
-            <span className="close" onClick={() => setShowPopup(false)}>
-              &times;
-            </span>
+            <span className="close" onClick={() => setShowPopup(false)}></span>
             <button className="cancel-button" onClick={cancelAddTask}>
               Cancel
             </button>
@@ -263,6 +225,24 @@ function App() {
                 Low
               </button>
             </div>
+            <select
+              className="select-todo"
+              value={selectedParentTask ? selectedParentTask.id : " "}
+              onChange={(e) => {
+                const taskId = parseInt(e.target.value);
+                const task = todoList.find((task) => task.id === taskId);
+                setSelectedParentTask(task);
+              }}
+            >
+              <option value="">
+                Select any Task(This will act as a parent task)
+              </option>
+              {todoList.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.name}
+                </option>
+              ))}
+            </select>
             <button className="pop-add" onClick={formSubmit}>
               Add
             </button>
