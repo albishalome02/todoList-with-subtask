@@ -79,32 +79,36 @@ function App() {
     setSelectedParentTask(null);
   };
 
-  const markTaskAsDone = (taskId) => {
-    setTodoList((prevTodoList) => {
-      const updatedList = prevTodoList.map((task) => {
-        if (task.id === taskId) {
-          task.status = "Done";
-        }
-        return task;
-      });
-      const markParentAsDone = (task) => {
-        if (task.parentId) {
-          const parentTask = updatedList.find((t) => t.id === task.parentId);
-          const allTasksDone = updatedList
-            .filter((t) => t.parentId === parentTask.id)
-            .every((subtask) => subtask.status === "Done");
-          if (allTasksDone) {
-            parentTask.status = "Done";
-            markParentAsDone(parentTask);
-          }
-        }
-      };
-      updatedList.forEach((task) => {
-        markParentAsDone(task);
-      });
-      return updatedList;
+const markTaskAsDone = (taskId) => {
+  setTodoList((prevTodoList) => {
+    const updatedList = prevTodoList.map((task) => {
+      if (task.id === taskId) {
+        task.status = "Done";
+      }
+      return task;
     });
-  };
+
+    // Mark immediate child tasks as done if parent task is done
+    const markImmediateChildrenAsDone = (task) => {
+      const childTasks = updatedList.filter((t) => t.parentId === task.id);
+      childTasks.forEach((childTask) => {
+        childTask.status = "Done";
+      });
+    };
+
+    const task = updatedList.find((task) => task.id === taskId);
+    if (task.status === "Done") {
+      markImmediateChildrenAsDone(task); // Mark immediate child tasks as done
+    }
+
+    return updatedList;
+  });
+};
+
+
+
+
+
 
   const getParentName = (taskId) => {
     const parentTask = todoList.find((task) => task.id === taskId);
@@ -152,7 +156,7 @@ function App() {
                     className="todo-button"
                     onClick={() => markTaskAsDone(task.id)}
                   >
-                    Mark as Done
+                   Done
                   </button>
                   <button
                     className="todo-button"
