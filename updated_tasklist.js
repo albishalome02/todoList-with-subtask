@@ -26,8 +26,8 @@ function App() {
   const [showPopup, setShowPopup] = useState(false);
   const [selectedParentTask, setSelectedParentTask] = useState(null);
 
-  const formSubmit = () => {
-    if (editIndex === -1) {
+  const formSubmit = (index) => {
+    if (!index) {
       setTodoList([
         ...todoList,
         {
@@ -41,7 +41,6 @@ function App() {
       const updatedList = [...todoList];
       updatedList[editIndex] = {
         ...formData,
-        status: "Todo",
         parentId: todoList[editIndex].parentId,
       };
       setTodoList(updatedList);
@@ -55,11 +54,7 @@ function App() {
   const edit = (i) => {
     setEditIndex(i);
     setFormData(todoList[i]);
-    const parentTaskId = todoList[i].parentId;
-    const parentTask = parentTaskId
-      ? todoList.find((task) => task.id === parentTaskId)
-      : null;
-    setSelectedParentTask(parentTask);
+    // console.log("todoList: ",todoList[i]);
     setShowPopup(true);
   };
 
@@ -80,46 +75,49 @@ function App() {
   };
 
   const markTaskAsDone = (taskId) => {
-    setTodoList((prevTodoList) => {
-      const updatedList = prevTodoList.map((task) => {
-        console.log("Task id:",task.id);
+    // const taskList = [...todoList];
+      const updatedList = todoList.map((task) => {
         if (task.id === taskId) {
+          console.log("Task ID: ", task.id);
+          console.log("task", task);
           task.status = "Done";
         }
         return task;
       });
-      const markChildrenAsDone = (parentTask) => {
-        const childTasks = updatedList.filter(
-          (task) => task.parentId === parentTask.id
-        );// calls a function for each element in an array(forEach)
-        childTasks.forEach((childTask) => {
+      setTodoList(updatedList);
+      // Function to mark all children tasks as done
+      const markChildrenAsDone = (task) => {
+        const childrenTasks = updatedList.filter((t) => t.parentId === task.id);
+        console.log("childrenTask: ", childrenTasks);
+        childrenTasks.forEach((childTask) => {
           childTask.status = "Done";
-          markChildrenAsDone(childTask); // Recursively mark child's subtasks as done
+          markChildrenAsDone(childTask); //recursive CALL
         });
       };
-      const markParentAsDone = (childTask) => {
-        const parentId = childTask.parentId;
-        if (parentId) {
-          const parentTask = updatedList.find((task) => task.id === parentId);
-          const allChildrenDone = updatedList
-            .filter((task) => task.parentId === parentId)//used to create a new array from a given array consisting of only those elements from the given array that satisfy a condition set by the argument method.
-            .every((task) => task.status === "Done"); //checks if all elements in an array pass a test specified by a function. It returns true if all elements satisfy the condition, otherwise false.
-          if (allChildrenDone) {
+
+      // Function to mark parent task as done
+      const markParentAsDone = (task) => {
+        if (task.parentId) {
+          const parentTask = updatedList.find((t) => t.id === task.parentId);
+          console.log("parentTask: ", parentTask);
+          const isSiblingsDone = updatedList
+            .filter((t) => t.parentId === parentTask.id)
+            .every((t) => t.status === "Done");
+          if (isSiblingsDone && parentTask.status !== "Done") {
             parentTask.status = "Done";
-            markParentAsDone(parentTask); // Recursively mark parent's parent as done
+            markParentAsDone(parentTask); //recursive CALL
           }
         }
       };
-      const task = updatedList.find((task) => task.id === taskId);
+      const task = updatedList.find((t) => t.id === taskId);
+      console.log("UPDATEDTask :", task);
       if (task.status === "Done") {
-        markParentAsDone(task); // Mark immediate parent as done after marking children
-        markChildrenAsDone(task); // Mark children and subtasks as done if parent is done
-      } else {
-        markParentAsDone(task); // Mark immediate parent as done if child task is marked as done
+        markParentAsDone(task);
+        markChildrenAsDone(task);
+        console.log("Task marked as Done: ", task);
+        console.log("--------------------------------");
       }
-
       return updatedList;
-    });
   };
 
   const getParentName = (taskId) => {
@@ -185,6 +183,7 @@ function App() {
           </tbody>
         </table>
       </div>
+      {/* Add popup */}
       {showPopup && (
         <div className="popup">
           <div className="popup-content">
@@ -223,26 +222,25 @@ function App() {
                 Low
               </button>
             </div>
-           <select
-           className="select-todo"
-           value={selectedParentTask ? selectedParentTask.id : ""}
-           onChange={(e) => {
-           const taskId = parseInt(e.target.value);
-           const task = todoList.find((task) => task.id === taskId);
-           setSelectedParentTask(task);
-          }}
-        >
-        <option value="">
-          Select any Task (This will act as a parent task)
-        </option>
-        {todoList.map((task,index) => (
-          <option key={task.id} value={task.id}>
-            {task.name}(ID: {index+1})
-          </option>
-        ))}
-      </select>
-
-            <button className="pop-add" onClick={formSubmit}>
+            <select
+              className="select-todo"
+              value={formData.parentId ? formData.parentId : " "}
+              onChange={(e) => {
+                const taskId = parseInt(e.target.value);
+                const task = todoList.find((task) => task.id === taskId);
+                setSelectedParentTask(task);
+              }}
+            >
+              <option value="">
+                Select any Task(This will act as a parent task)
+              </option>
+              {todoList.map((task, index) => (
+                <option key={task.id} value={task.id}>
+                  {task.name}(ID: {index + 1})
+                </option>
+              ))}
+            </select>
+            <button className="pop-add" onClick={() => formSubmit(formData?.id)}>
               Add
             </button>
           </div>
@@ -253,4 +251,3 @@ function App() {
 }
 
 export default App;
-
